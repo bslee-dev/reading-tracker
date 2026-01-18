@@ -1,0 +1,14 @@
+.chart-container {
+  height: 300px;
+  position: relative;
+}
+
+.chart-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+}
+
+.chart-empty p {
+  font-size: 1rem;
+}
