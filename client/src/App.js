@@ -42,6 +42,16 @@ function App() {
     fetchMonthlyData();
   };
 
+  const handleBookDeleted = () => {
+    fetchBooks();
+    fetchMonthlyData();
+  };
+
+  const handleBookUpdated = () => {
+    fetchBooks();
+    fetchMonthlyData();
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -68,7 +78,11 @@ function App() {
             {loading ? (
               <p>로딩 중...</p>
             ) : (
-              <BookList books={books} />
+              <BookList 
+                books={books} 
+                onBookDeleted={handleBookDeleted}
+                onBookUpdated={handleBookUpdated}
+              />
             )}
           </section>
         </div>

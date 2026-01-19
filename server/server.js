@@ -59,6 +59,50 @@ app.post('/api/books', (req, res) => {
   );
 });
 
+// 책 수정
+app.put('/api/books/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, author, genre, pages, completed_date } = req.body;
+  
+  if (!title || !author || !genre || !pages || !completed_date) {
+    res.status(400).json({ error: '모든 필드를 입력해주세요.' });
+    return;
+  }
+
+  db.run(
+    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ? WHERE id = ?',
+    [title, author, genre, pages, completed_date, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: '책을 찾을 수 없습니다.' });
+        return;
+      }
+      res.json({ id: parseInt(id), title, author, genre, pages, completed_date });
+    }
+  );
+});
+
+// 책 삭제
+app.delete('/api/books/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.run('DELETE FROM books WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: '책을 찾을 수 없습니다.' });
+      return;
+    }
+    res.json({ message: '책이 삭제되었습니다.', id: parseInt(id) });
+  });
+});
+
 // 월별 통계 조회
 app.get('/api/books/monthly', (req, res) => {
   db.all(

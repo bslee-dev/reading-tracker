@@ -10,6 +10,10 @@
   border-radius: 8px;
   padding: 1.5rem;
   transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .book-card:hover {
@@ -68,6 +72,41 @@
   color: #388e3c;
 }
 
+.book-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #2980b9;
+}
+
+.btn-delete {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c0392b;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem;
@@ -81,5 +120,14 @@
 @media (max-width: 768px) {
   .book-list {
     grid-template-columns: 1fr;
+  }
+
+  .book-card {
+    flex-direction: column;
+  }
+
+  .book-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
