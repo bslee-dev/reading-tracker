@@ -3,6 +3,7 @@ import axios from 'axios';
 import BookList from './components/BookList';
 import BookForm from './components/BookForm';
 import MonthlyChart from './components/MonthlyChart';
+import StatsCards from './components/StatsCards';
 import './App.css';
 
 function App() {
@@ -59,6 +60,8 @@ function App() {
       </header>
       <main className="App-main">
         <div className="container">
+          {!loading && <StatsCards books={books} />}
+          
           <section className="chart-section">
             <h2>월별 읽은 책 수</h2>
             {loading ? (
