@@ -3,8 +3,18 @@ import axios from 'axios';
 import BookEditModal from './BookEditModal';
 import './BookList.css';
 
-function BookList({ books, onBookDeleted, onBookUpdated }) {
+function BookList({ books, searchTerm, onBookDeleted, onBookUpdated }) {
   const [editingBook, setEditingBook] = useState(null);
+
+  // 검색어로 필터링
+  const filteredBooks = books.filter(book => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      book.title.toLowerCase().includes(term) ||
+      book.author.toLowerCase().includes(term)
+    );
+  });
 
   const handleDelete = async (id) => {
     if (!window.confirm('정말 이 책을 삭제하시겠습니까?')) {
@@ -41,10 +51,23 @@ function BookList({ books, onBookDeleted, onBookUpdated }) {
     );
   }
 
+  if (filteredBooks.length === 0) {
+    return (
+      <div className="empty-state">
+        <p>검색 결과가 없습니다. 다른 검색어를 시도해보세요.</p>
+      </div>
+    );
+  }
+
   return (
     <>
+      {searchTerm && (
+        <div className="search-result-info">
+          <p>"{searchTerm}" 검색 결과: {filteredBooks.length}권</p>
+        </div>
+      )}
       <div className="book-list">
-        {books.map((book) => (
+        {filteredBooks.map((book) => (
           <div key={book.id} className="book-card">
             <div className="book-info">
               <h3 className="book-title">{book.title}</h3>

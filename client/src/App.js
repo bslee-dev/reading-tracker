@@ -4,12 +4,14 @@ import BookList from './components/BookList';
 import BookForm from './components/BookForm';
 import MonthlyChart from './components/MonthlyChart';
 import StatsCards from './components/StatsCards';
+import SearchBar from './components/SearchBar';
 import './App.css';
 
 function App() {
   const [books, setBooks] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchBooks = async () => {
     try {
@@ -78,11 +80,18 @@ function App() {
 
           <section className="list-section">
             <h2>책 목록</h2>
+            {!loading && (
+              <SearchBar 
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+              />
+            )}
             {loading ? (
               <p>로딩 중...</p>
             ) : (
               <BookList 
-                books={books} 
+                books={books}
+                searchTerm={searchTerm}
                 onBookDeleted={handleBookDeleted}
                 onBookUpdated={handleBookUpdated}
               />
