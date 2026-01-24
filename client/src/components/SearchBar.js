@@ -12,6 +12,7 @@ function SearchBar({ searchTerm, onSearchChange }) {
           placeholder="제목 또는 저자로 검색..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
+          maxLength={100}
         />
         {searchTerm && (
           <button

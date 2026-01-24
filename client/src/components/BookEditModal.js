@@ -26,9 +26,44 @@ function BookEditModal({ book, onClose, onSave }) {
   }, [book]);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // 입력값 검증 및 제한
+    let processedValue = value;
+    
+    if (name === 'pages') {
+      // 페이지 수는 숫자만 허용
+      if (value === '' || /^\d+$/.test(value)) {
+        processedValue = value;
+      } else {
+        return; // 유효하지 않은 입력은 무시
+      }
+    } else if (name === 'title') {
+      // 제목 길이 제한 (200자)
+      if (value.length <= 200) {
+        processedValue = value;
+      } else {
+        return;
+      }
+    } else if (name === 'author') {
+      // 저자 길이 제한 (100자)
+      if (value.length <= 100) {
+        processedValue = value;
+      } else {
+        return;
+      }
+    } else if (name === 'genre') {
+      // 장르 길이 제한 (50자)
+      if (value.length <= 50) {
+        processedValue = value;
+      } else {
+        return;
+      }
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: processedValue
     });
     setError('');
   };
@@ -77,6 +112,7 @@ function BookEditModal({ book, onClose, onSave }) {
                 value={formData.title}
                 onChange={handleChange}
                 required
+                maxLength={200}
                 placeholder="책 제목을 입력하세요"
               />
             </div>
@@ -90,6 +126,7 @@ function BookEditModal({ book, onClose, onSave }) {
                 value={formData.author}
                 onChange={handleChange}
                 required
+                maxLength={100}
                 placeholder="저자명을 입력하세요"
               />
             </div>
@@ -105,6 +142,7 @@ function BookEditModal({ book, onClose, onSave }) {
                 value={formData.genre}
                 onChange={handleChange}
                 required
+                maxLength={50}
                 placeholder="예: 소설, 에세이, 자기계발"
               />
             </div>
@@ -119,6 +157,7 @@ function BookEditModal({ book, onClose, onSave }) {
                 onChange={handleChange}
                 required
                 min="1"
+                max="100000"
                 placeholder="페이지 수"
               />
             </div>
@@ -133,6 +172,7 @@ function BookEditModal({ book, onClose, onSave }) {
               value={formData.completed_date}
               onChange={handleChange}
               required
+              max={new Date().toISOString().split('T')[0]}
             />
           </div>
 
