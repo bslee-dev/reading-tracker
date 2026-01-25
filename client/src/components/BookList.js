@@ -43,6 +43,20 @@ function BookList({ books, searchTerm, onBookDeleted, onBookUpdated }) {
     setEditingBook(null);
   };
 
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'reading': return '읽는 중';
+      case 'wishlist': return '읽고 싶음';
+      case 'paused': return '중단';
+      case 'completed': return '완료';
+      default: return '완료'; // Default for old data
+    }
+  };
+
+  const getStatusClass = (status) => {
+    return `status-badge status-${status || 'completed'}`;
+  };
+
   if (books.length === 0) {
     return (
       <div className="empty-state">
@@ -69,26 +83,36 @@ function BookList({ books, searchTerm, onBookDeleted, onBookUpdated }) {
       <div className="book-list">
         {filteredBooks.map((book) => (
           <div key={book.id} className="book-card">
-            <div className="book-info">
+            {book.image_url && (
+              <div className="book-cover">
+                <img src={book.image_url} alt={book.title} />
+              </div>
+            )}
+            <div className="book-content">
+              <div className="book-header">
+                <span className={getStatusClass(book.status)}>{getStatusLabel(book.status)}</span>
+              </div>
               <h3 className="book-title">{book.title}</h3>
               <p className="book-author">저자: {book.author}</p>
               <div className="book-details">
                 <span className="book-genre">{book.genre}</span>
                 <span className="book-pages">{book.pages}페이지</span>
-                <span className="book-date">
-                  완료일: {new Date(book.completed_date).toLocaleDateString('ko-KR')}
-                </span>
+                {book.completed_date && (
+                  <span className="book-date">
+                    완료: {new Date(book.completed_date).toLocaleDateString('ko-KR')}
+                  </span>
+                )}
               </div>
             </div>
             <div className="book-actions">
-              <button 
-                className="btn-edit" 
+              <button
+                className="btn-edit"
                 onClick={() => handleEdit(book)}
               >
                 수정
               </button>
-              <button 
-                className="btn-delete" 
+              <button
+                className="btn-delete"
                 onClick={() => handleDelete(book.id)}
               >
                 삭제

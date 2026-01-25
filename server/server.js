@@ -7,13 +7,15 @@ const app = express();
 const PORT = 3001;
 
 // 보안 설정 상수
+// 보안 설정 상수
 const VALIDATION_LIMITS = {
   TITLE_MAX_LENGTH: 200,
   AUTHOR_MAX_LENGTH: 100,
   GENRE_MAX_LENGTH: 50,
   PAGES_MIN: 1,
   PAGES_MAX: 100000,
-  DATE_PATTERN: /^\d{4}-\d{2}-\d{2}$/
+  DATE_PATTERN: /^\d{4}-\d{2}-\d{2}$/,
+  STATUS_VALUES: ['reading', 'wishlist', 'paused', 'completed']
 };
 
 // 미들웨어
@@ -24,16 +26,45 @@ app.use(express.json({ limit: '10kb' })); // 요청 크기 제한
 const dbPath = path.join(__dirname, 'books.db');
 const db = new sqlite3.Database(dbPath);
 
-// 테이블 생성
+// 테이블 생성 및 마이그레이션
 db.serialize(() => {
+  // 1. 테이블이 없으면 생성
   db.run(`CREATE TABLE IF NOT EXISTS books (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     author TEXT NOT NULL,
     genre TEXT NOT NULL,
     pages INTEGER NOT NULL,
-    completed_date TEXT NOT NULL
+    completed_date TEXT,
+    status TEXT DEFAULT 'completed',
+    image_url TEXT
   )`);
+
+  // 2. 기존 테이블에 컬럼이 없는 경우 추가 (마이그레이션)
+  db.all("PRAGMA table_info(books)", (err, rows) => {
+    if (err) {
+      console.error("테이블 정보 조회 오류:", err);
+      return;
+    }
+
+    const columns = rows.map(row => row.name);
+    
+    if (!columns.includes('status')) {
+      console.log('status 컬럼 추가 중...');
+      db.run("ALTER TABLE books ADD COLUMN status TEXT DEFAULT 'completed'", (err) => {
+        if (err) console.error('status 컬럼 추가 실패:', err);
+        else console.log('status 컬럼 추가 완료');
+      });
+    }
+
+    if (!columns.includes('image_url')) {
+      console.log('image_url 컬럼 추가 중...');
+      db.run("ALTER TABLE books ADD COLUMN image_url TEXT", (err) => {
+        if (err) console.error('image_url 컬럼 추가 실패:', err);
+        else console.log('image_url 컬럼 추가 완료');
+      });
+    }
+  });
 });
 
 // 보안 유틸리티 함수들
@@ -52,22 +83,38 @@ function sanitizeString(str) {
 /**
  * 문자열 검증
  */
-function validateString(value, fieldName, maxLength) {
+function validateString(value, fieldName, maxLength, required = true) {
+  if (!required && (value === undefined || value === null || value === '')) {
+    return { valid: true, value: '' }; // 필수가 아니면 빈 값 허용
+  }
+
   if (!value || typeof value !== 'string') {
     return { valid: false, error: `${fieldName}는 필수 항목입니다.` };
   }
   
   const sanitized = sanitizeString(value);
   
-  if (sanitized.length === 0) {
+  if (required && sanitized.length === 0) {
     return { valid: false, error: `${fieldName}는 비어있을 수 없습니다.` };
   }
   
-  if (sanitized.length > maxLength) {
+  if (maxLength && sanitized.length > maxLength) {
     return { valid: false, error: `${fieldName}는 ${maxLength}자 이하여야 합니다.` };
   }
   
   return { valid: true, value: sanitized };
+}
+
+/**
+ * 상태 값 검증
+ */
+function validateStatus(value) {
+  if (!value) return { valid: true, value: 'completed' }; // 기본값
+  
+  if (!VALIDATION_LIMITS.STATUS_VALUES.includes(value)) {
+    return { valid: false, error: '유효하지 않은 상태 값입니다.' };
+  }
+  return { valid: true, value: value };
 }
 
 /**
@@ -98,7 +145,11 @@ function validateNumber(value, fieldName, min, max) {
 /**
  * 날짜 검증
  */
-function validateDate(value, fieldName) {
+function validateDate(value, fieldName, required = true) {
+  if (!required && !value) {
+    return { valid: true, value: '' };
+  }
+
   if (!value || typeof value !== 'string') {
     return { valid: false, error: `${fieldName}는 필수 항목입니다.` };
   }
@@ -170,10 +221,23 @@ function validateBookData(body) {
   if (!pagesResult.valid) errors.push(pagesResult.error);
   else validated.pages = pagesResult.value;
   
-  // 완료일 검증
-  const dateResult = validateDate(body.completed_date, '완료일');
+  // 상태 검증
+  const statusResult = validateStatus(body.status);
+  if (!statusResult.valid) errors.push(statusResult.error);
+  else validated.status = statusResult.value;
+
+  // 완료일 검증 (완료 상태일 때만 필수, 그 외엔 선택)
+  const isCompleted = validated.status === 'completed';
+  const dateResult = validateDate(body.completed_date, '완료일', isCompleted);
   if (!dateResult.valid) errors.push(dateResult.error);
   else validated.completed_date = dateResult.value;
+
+  // 이미지 URL (선택, 간단한 길이 체크만)
+  if (body.image_url && typeof body.image_url === 'string') {
+    validated.image_url = body.image_url.trim(); // 엄격한 URL 검증은 생략하고 trim만
+  } else {
+    validated.image_url = '';
+  }
   
   return {
     valid: errors.length === 0,
@@ -184,7 +248,7 @@ function validateBookData(body) {
 
 // 모든 책 조회
 app.get('/api/books', (req, res) => {
-  db.all('SELECT * FROM books ORDER BY completed_date DESC', (err, rows) => {
+  db.all('SELECT * FROM books ORDER BY completed_date DESC, id DESC', (err, rows) => {
     if (err) {
       console.error('데이터베이스 오류:', err);
       res.status(500).json({ error: '책 목록을 불러오는 중 오류가 발생했습니다.' });
@@ -203,18 +267,18 @@ app.post('/api/books', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url } = validation.data;
 
   db.run(
-    'INSERT INTO books (title, author, genre, pages, completed_date) VALUES (?, ?, ?, ?, ?)',
-    [title, author, genre, pages, completed_date],
+    'INSERT INTO books (title, author, genre, pages, completed_date, status, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [title, author, genre, pages, completed_date || null, status, image_url],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
         res.status(500).json({ error: '책을 추가하는 중 오류가 발생했습니다.' });
         return;
       }
-      res.json({ id: this.lastID, title, author, genre, pages, completed_date });
+      res.json({ id: this.lastID, title, author, genre, pages, completed_date, status, image_url });
     }
   );
 });
@@ -233,12 +297,12 @@ app.put('/api/books/:id', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url } = validation.data;
   const id = idValidation.value;
 
   db.run(
-    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ? WHERE id = ?',
-    [title, author, genre, pages, completed_date, id],
+    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ?, status = ?, image_url = ? WHERE id = ?',
+    [title, author, genre, pages, completed_date || null, status, image_url, id],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
@@ -249,7 +313,7 @@ app.put('/api/books/:id', (req, res) => {
         res.status(404).json({ error: '책을 찾을 수 없습니다.' });
         return;
       }
-      res.json({ id: id, title, author, genre, pages, completed_date });
+      res.json({ id: id, title, author, genre, pages, completed_date, status, image_url });
     }
   );
 });
@@ -285,6 +349,7 @@ app.get('/api/books/monthly', (req, res) => {
       strftime('%Y-%m', completed_date) as month,
       COUNT(*) as count
     FROM books
+    WHERE status = 'completed' AND completed_date IS NOT NULL
     GROUP BY month
     ORDER BY month`,
     (err, rows) => {

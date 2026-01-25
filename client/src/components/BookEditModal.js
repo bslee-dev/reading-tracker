@@ -8,7 +8,9 @@ function BookEditModal({ book, onClose, onSave }) {
     author: '',
     genre: '',
     pages: '',
-    completed_date: ''
+    completed_date: '',
+    status: 'completed',
+    image_url: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,17 +22,19 @@ function BookEditModal({ book, onClose, onSave }) {
         author: book.author,
         genre: book.genre,
         pages: book.pages.toString(),
-        completed_date: book.completed_date
+        completed_date: book.completed_date || '',
+        status: book.status || 'completed',
+        image_url: book.image_url || ''
       });
     }
   }, [book]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // 입력값 검증 및 제한
     let processedValue = value;
-    
+
     if (name === 'pages') {
       // 페이지 수는 숫자만 허용
       if (value === '' || /^\d+$/.test(value)) {
@@ -60,11 +64,11 @@ function BookEditModal({ book, onClose, onSave }) {
         return;
       }
     }
-    
-    setFormData({
-      ...formData,
+
+    setFormData(prev => ({
+      ...prev,
       [name]: processedValue
-    });
+    }));
     setError('');
   };
 
@@ -74,11 +78,18 @@ function BookEditModal({ book, onClose, onSave }) {
     setLoading(true);
 
     try {
+      // completed status requires a date
+      if (formData.status === 'completed' && !formData.completed_date) {
+        setError('완료 상태일 때는 완료일을 입력해야 합니다.');
+        setLoading(false);
+        return;
+      }
+
       await axios.put(`/api/books/${book.id}`, {
         ...formData,
         pages: parseInt(formData.pages)
       });
-      
+
       onSave();
     } catch (err) {
       setError(err.response?.data?.error || '책 수정 중 오류가 발생했습니다.');
@@ -100,7 +111,7 @@ function BookEditModal({ book, onClose, onSave }) {
           <h2>책 수정</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="book-edit-form">
           <div className="form-row">
             <div className="form-group">
@@ -163,32 +174,53 @@ function BookEditModal({ book, onClose, onSave }) {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="edit-completed_date">완료일 *</label>
-            <input
-              type="date"
-              id="edit-completed_date"
-              name="completed_date"
-              value={formData.completed_date}
-              onChange={handleChange}
-              required
-              max={new Date().toISOString().split('T')[0]}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="edit-status">상태</label>
+              <select
+                id="edit-status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+              >
+                <option value="reading">읽는 중</option>
+                <option value="wishlist">읽고 싶음</option>
+                <option value="paused">일시 중지</option>
+                <option value="completed">완료</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="edit-completed_date">완료일 {formData.status === 'completed' && '*'}</label>
+              <input
+                type="date"
+                id="edit-completed_date"
+                name="completed_date"
+                value={formData.completed_date}
+                onChange={handleChange}
+                required={formData.status === 'completed'}
+                max={new Date().toISOString().split('T')[0]}
+                disabled={formData.status !== 'completed'}
+              />
+            </div>
           </div>
+
+          {/* Hidden field for image_url to persist it */}
+          <input type="hidden" name="image_url" value={formData.image_url} />
 
           {error && <div className="message error">{error}</div>}
 
           <div className="modal-actions">
-            <button 
-              type="button" 
-              className="btn-cancel" 
+            <button
+              type="button"
+              className="btn-cancel"
               onClick={onClose}
               disabled={loading}
             >
               취소
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn-save"
               disabled={loading}
             >
