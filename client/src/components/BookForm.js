@@ -11,7 +11,8 @@ function BookForm({ onBookAdded }) {
     pages: '',
     completed_date: '',
     status: 'reading', // Default status
-    image_url: ''
+    image_url: '',
+    rating: ''
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [error, setError] = useState('');
@@ -66,9 +67,10 @@ function BookForm({ onBookAdded }) {
       ...formData,
       title: book.title,
       author: book.author,
-      genre: book.genre || formData.genre, // Keep existing if API doesn't provide
+      genre: book.genre || formData.genre,
       pages: book.pages || formData.pages,
-      image_url: book.image_url || ''
+      image_url: book.image_url || '',
+      rating: book.rating ?? formData.rating
     });
   };
 
@@ -86,7 +88,8 @@ function BookForm({ onBookAdded }) {
 
       await axios.post('/api/books', {
         ...formData,
-        pages: parseInt(formData.pages)
+        pages: parseInt(formData.pages),
+        rating: formData.rating === '' ? null : parseInt(formData.rating, 10)
       });
 
       setSuccess('책이 성공적으로 추가되었습니다!');
@@ -97,7 +100,8 @@ function BookForm({ onBookAdded }) {
         pages: '',
         completed_date: '',
         status: 'reading',
-        image_url: ''
+        image_url: '',
+        rating: ''
       });
 
       onBookAdded();
@@ -209,6 +213,25 @@ function BookForm({ onBookAdded }) {
               max={new Date().toISOString().split('T')[0]}
               disabled={formData.status !== 'completed'}
             />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="rating">평점 (선택)</label>
+            <select
+              id="rating"
+              name="rating"
+              value={formData.rating}
+              onChange={handleChange}
+            >
+              <option value="">미선택</option>
+              <option value="1">★ 1</option>
+              <option value="2">★★ 2</option>
+              <option value="3">★★★ 3</option>
+              <option value="4">★★★★ 4</option>
+              <option value="5">★★★★★ 5</option>
+            </select>
           </div>
         </div>
 

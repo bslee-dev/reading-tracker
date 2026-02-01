@@ -94,6 +94,12 @@
   color: #888;
 }
 
+.book-rating {
+  color: #f1c40f;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
 .book-genre,
 .book-pages,
 .book-date {

@@ -95,6 +95,11 @@ function BookList({ books, searchTerm, onBookDeleted, onBookUpdated }) {
               <h3 className="book-title">{book.title}</h3>
               <p className="book-author">저자: {book.author}</p>
               <div className="book-details">
+                {book.rating != null && (
+                  <span className="book-rating" title={`평점 ${book.rating}/5`}>
+                    {'★'.repeat(book.rating)}{'☆'.repeat(5 - book.rating)}
+                  </span>
+                )}
                 <span className="book-genre">{book.genre}</span>
                 <span className="book-pages">{book.pages}페이지</span>
                 {book.completed_date && (

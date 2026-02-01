@@ -11,8 +11,12 @@
 ## 기능
 
 - 📚 책 목록 보기
-- ➕ 책 추가하기 (제목, 저자, 장르, 페이지 수, 완료일)
+- ➕ 책 추가하기 (제목, 저자, 장르, 페이지 수, 완료일, 상태, 평점)
+- ⭐ 평점 (1~5) – 책 카드·추가·수정에서 선택 가능
+- 🎯 월별 독서 목표 – 이번 달 목표 권수 설정 및 진행률 표시
 - 📊 월별 읽은 책 수 막대 차트
+- 🔀 정렬 – 최신/오래된 완료순, 제목순, 페이지 순
+- 🏷️ 장르 필터 – 장르별로 목록 필터링
 
 ## 프로젝트 구조
 
@@ -72,9 +76,14 @@ npm start
 
 ## API 엔드포인트
 
-- `GET /api/books` - 모든 책 조회
+- `GET /api/books` - 모든 책 조회 (`?sort=date|date_asc|title|pages_desc|pages_asc`, `?genre=장르`)
+- `GET /api/books/genres` - 장르 목록 조회
 - `POST /api/books` - 새 책 추가
+- `PUT /api/books/:id` - 책 수정
+- `DELETE /api/books/:id` - 책 삭제
 - `GET /api/books/monthly` - 월별 통계 조회
+- `GET /api/goals` - 독서 목표 조회 (`?year=`, `?month=`)
+- `PUT /api/goals` - 독서 목표 설정 (body: `year`, `month`, `target_count`)
 
 ## 개발 모드
 

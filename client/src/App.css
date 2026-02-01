@@ -40,6 +40,13 @@ section h2 {
   padding-bottom: 0.5rem;
 }
 
+.goal-section {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
 .chart-section {
   min-height: 300px;
 }

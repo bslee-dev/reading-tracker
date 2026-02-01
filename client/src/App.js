@@ -5,20 +5,39 @@ import BookForm from './components/BookForm';
 import MonthlyChart from './components/MonthlyChart';
 import StatsCards from './components/StatsCards';
 import SearchBar from './components/SearchBar';
+import ReadingGoal from './components/ReadingGoal';
+import ListToolbar from './components/ListToolbar';
 import './App.css';
 
 function App() {
   const [books, setBooks] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('date');
+  const [genreFilter, setGenreFilter] = useState('');
 
-  const fetchBooks = async () => {
+  const fetchBooks = async (opts = {}) => {
     try {
-      const response = await axios.get('/api/books');
+      const sort = opts.sort !== undefined ? opts.sort : sortOrder;
+      const genre = opts.genre !== undefined ? opts.genre : genreFilter;
+      const params = {};
+      if (sort) params.sort = sort;
+      if (genre) params.genre = genre;
+      const response = await axios.get('/api/books', { params });
       setBooks(response.data);
     } catch (error) {
       console.error('책 목록을 불러오는 중 오류 발생:', error);
+    }
+  };
+
+  const fetchGenres = async () => {
+    try {
+      const response = await axios.get('/api/books/genres');
+      setGenres(response.data);
+    } catch (error) {
+      console.error('장르 목록을 불러오는 중 오류 발생:', error);
     }
   };
 
@@ -34,11 +53,12 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchBooks(), fetchMonthlyData()]);
+      await Promise.all([fetchBooks(), fetchMonthlyData(), fetchGenres()]);
       setLoading(false);
     };
     loadData();
   }, []);
+
 
   const handleBookAdded = () => {
     fetchBooks();
@@ -63,6 +83,12 @@ function App() {
       <main className="App-main">
         <div className="container">
           {!loading && <StatsCards books={books} />}
+
+          {!loading && (
+            <section className="goal-section">
+              <ReadingGoal monthlyData={monthlyData} onGoalUpdated={fetchMonthlyData} />
+            </section>
+          )}
           
           <section className="chart-section">
             <h2>월별 읽은 책 수</h2>
@@ -81,10 +107,19 @@ function App() {
           <section className="list-section">
             <h2>책 목록</h2>
             {!loading && (
-              <SearchBar 
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-              />
+              <>
+                <ListToolbar
+                  sortOrder={sortOrder}
+                  onSortChange={(v) => { setSortOrder(v); fetchBooks({ sort: v }); }}
+                  genreFilter={genreFilter}
+                  onGenreChange={(v) => { setGenreFilter(v); fetchBooks({ genre: v }); }}
+                  genres={genres}
+                />
+                <SearchBar 
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                />
+              </>
             )}
             {loading ? (
               <p>로딩 중...</p>

@@ -14,6 +14,8 @@ const VALIDATION_LIMITS = {
   GENRE_MAX_LENGTH: 50,
   PAGES_MIN: 1,
   PAGES_MAX: 100000,
+  RATING_MIN: 1,
+  RATING_MAX: 5,
   DATE_PATTERN: /^\d{4}-\d{2}-\d{2}$/,
   STATUS_VALUES: ['reading', 'wishlist', 'paused', 'completed']
 };
@@ -37,7 +39,8 @@ db.serialize(() => {
     pages INTEGER NOT NULL,
     completed_date TEXT,
     status TEXT DEFAULT 'completed',
-    image_url TEXT
+    image_url TEXT,
+    rating INTEGER
   )`);
 
   // 2. 기존 테이블에 컬럼이 없는 경우 추가 (마이그레이션)
@@ -64,7 +67,24 @@ db.serialize(() => {
         else console.log('image_url 컬럼 추가 완료');
       });
     }
+
+    if (!columns.includes('rating')) {
+      console.log('rating 컬럼 추가 중...');
+      db.run("ALTER TABLE books ADD COLUMN rating INTEGER", (err) => {
+        if (err) console.error('rating 컬럼 추가 실패:', err);
+        else console.log('rating 컬럼 추가 완료');
+      });
+    }
   });
+
+  // 독서 목표 테이블 (년월별 목표 권수)
+  db.run(`CREATE TABLE IF NOT EXISTS reading_goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    target_count INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(year, month)
+  )`);
 });
 
 // 보안 유틸리티 함수들
@@ -174,6 +194,20 @@ function validateDate(value, fieldName, required = true) {
 }
 
 /**
+ * 평점 검증 (1~5, 선택)
+ */
+function validateRating(value) {
+  if (value === undefined || value === null || value === '') {
+    return { valid: true, value: null };
+  }
+  const num = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+  if (isNaN(num) || !Number.isInteger(num) || num < VALIDATION_LIMITS.RATING_MIN || num > VALIDATION_LIMITS.RATING_MAX) {
+    return { valid: false, error: `평점은 ${VALIDATION_LIMITS.RATING_MIN}~${VALIDATION_LIMITS.RATING_MAX} 사이의 정수여야 합니다.` };
+  }
+  return { valid: true, value: num };
+}
+
+/**
  * ID 파라미터 검증
  */
 function validateId(id) {
@@ -238,7 +272,12 @@ function validateBookData(body) {
   } else {
     validated.image_url = '';
   }
-  
+
+  // 평점 (선택, 1~5)
+  const ratingResult = validateRating(body.rating);
+  if (!ratingResult.valid) errors.push(ratingResult.error);
+  else validated.rating = ratingResult.value;
+
   return {
     valid: errors.length === 0,
     errors: errors,
@@ -246,15 +285,56 @@ function validateBookData(body) {
   };
 }
 
-// 모든 책 조회
+// 정렬/필터 허용 값
+const SORT_OPTIONS = ['date', 'date_asc', 'title', 'pages_desc', 'pages_asc'];
+
+// 모든 책 조회 (정렬: sort=date|date_asc|title|pages_desc|pages_asc, 장르: genre=값)
 app.get('/api/books', (req, res) => {
-  db.all('SELECT * FROM books ORDER BY completed_date DESC, id DESC', (err, rows) => {
+  const sort = SORT_OPTIONS.includes(req.query.sort) ? req.query.sort : 'date';
+  const genre = typeof req.query.genre === 'string' && req.query.genre.trim() ? req.query.genre.trim() : null;
+
+  let sql = 'SELECT * FROM books';
+  const params = [];
+  if (genre) {
+    sql += ' WHERE genre = ?';
+    params.push(genre);
+  }
+  switch (sort) {
+    case 'date_asc':
+      sql += ' ORDER BY (completed_date IS NULL), completed_date ASC, id ASC';
+      break;
+    case 'title':
+      sql += ' ORDER BY title ASC, id ASC';
+      break;
+    case 'pages_desc':
+      sql += ' ORDER BY pages DESC, id DESC';
+      break;
+    case 'pages_asc':
+      sql += ' ORDER BY pages ASC, id ASC';
+      break;
+    default:
+      sql += ' ORDER BY (completed_date IS NULL), completed_date DESC, id DESC';
+  }
+
+  db.all(sql, params, (err, rows) => {
     if (err) {
       console.error('데이터베이스 오류:', err);
       res.status(500).json({ error: '책 목록을 불러오는 중 오류가 발생했습니다.' });
       return;
     }
     res.json(rows);
+  });
+});
+
+// 장르 목록 조회 (필터용)
+app.get('/api/books/genres', (req, res) => {
+  db.all('SELECT DISTINCT genre FROM books ORDER BY genre', (err, rows) => {
+    if (err) {
+      console.error('데이터베이스 오류:', err);
+      res.status(500).json({ error: '장르 목록을 불러오는 중 오류가 발생했습니다.' });
+      return;
+    }
+    res.json(rows.map(r => r.genre));
   });
 });
 
@@ -267,18 +347,18 @@ app.post('/api/books', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date, status, image_url } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url, rating } = validation.data;
 
   db.run(
-    'INSERT INTO books (title, author, genre, pages, completed_date, status, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [title, author, genre, pages, completed_date || null, status, image_url],
+    'INSERT INTO books (title, author, genre, pages, completed_date, status, image_url, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
         res.status(500).json({ error: '책을 추가하는 중 오류가 발생했습니다.' });
         return;
       }
-      res.json({ id: this.lastID, title, author, genre, pages, completed_date, status, image_url });
+      res.json({ id: this.lastID, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null });
     }
   );
 });
@@ -297,12 +377,12 @@ app.put('/api/books/:id', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date, status, image_url } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url, rating } = validation.data;
   const id = idValidation.value;
 
   db.run(
-    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ?, status = ?, image_url = ? WHERE id = ?',
-    [title, author, genre, pages, completed_date || null, status, image_url, id],
+    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ?, status = ?, image_url = ?, rating = ? WHERE id = ?',
+    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null, id],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
@@ -313,7 +393,7 @@ app.put('/api/books/:id', (req, res) => {
         res.status(404).json({ error: '책을 찾을 수 없습니다.' });
         return;
       }
-      res.json({ id: id, title, author, genre, pages, completed_date, status, image_url });
+      res.json({ id: id, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null });
     }
   );
 });
@@ -340,6 +420,50 @@ app.delete('/api/books/:id', (req, res) => {
     }
     res.json({ message: '책이 삭제되었습니다.', id: id });
   });
+});
+
+// 독서 목표 조회 (year, month 쿼리 또는 현재 년월)
+app.get('/api/goals', (req, res) => {
+  const now = new Date();
+  const year = req.query.year ? parseInt(req.query.year, 10) : now.getFullYear();
+  const month = req.query.month ? parseInt(req.query.month, 10) : now.getMonth() + 1;
+  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+    res.status(400).json({ error: '유효한 year, month를 입력하세요.' });
+    return;
+  }
+  db.get('SELECT * FROM reading_goals WHERE year = ? AND month = ?', [year, month], (err, row) => {
+    if (err) {
+      console.error('데이터베이스 오류:', err);
+      res.status(500).json({ error: '목표를 불러오는 중 오류가 발생했습니다.' });
+      return;
+    }
+    res.json(row || { year, month, target_count: 0 });
+  });
+});
+
+// 독서 목표 설정 (upsert)
+app.put('/api/goals', (req, res) => {
+  const { year, month, target_count } = req.body;
+  const now = new Date();
+  const y = year != null ? parseInt(year, 10) : now.getFullYear();
+  const m = month != null ? parseInt(month, 10) : now.getMonth() + 1;
+  const count = target_count != null ? parseInt(target_count, 10) : 1;
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12 || isNaN(count) || count < 0) {
+    res.status(400).json({ error: 'year, month, target_count가 유효해야 합니다.' });
+    return;
+  }
+  db.run(
+    'INSERT INTO reading_goals (year, month, target_count) VALUES (?, ?, ?) ON CONFLICT(year, month) DO UPDATE SET target_count = excluded.target_count',
+    [y, m, count],
+    function(err) {
+      if (err) {
+        console.error('데이터베이스 오류:', err);
+        res.status(500).json({ error: '목표를 저장하는 중 오류가 발생했습니다.' });
+        return;
+      }
+      res.json({ year: y, month: m, target_count: count });
+    }
+  );
 });
 
 // 월별 통계 조회

@@ -1,0 +1,86 @@
+.reading-goal {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.reading-goal h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+}
+
+.goal-period {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  opacity: 0.95;
+}
+
+.goal-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.goal-progress-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.goal-progress-bar {
+  height: 100%;
+  background: #fff;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.goal-count {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.goal-form label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  opacity: 0.95;
+}
+
+.goal-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.goal-input-row input {
+  width: 80px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.goal-input-row button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.goal-input-row button:hover:not(:disabled) {
+  background: white;
+}
+
+.goal-input-row button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

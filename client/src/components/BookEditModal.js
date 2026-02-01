@@ -10,7 +10,8 @@ function BookEditModal({ book, onClose, onSave }) {
     pages: '',
     completed_date: '',
     status: 'completed',
-    image_url: ''
+    image_url: '',
+    rating: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,8 @@ function BookEditModal({ book, onClose, onSave }) {
         pages: book.pages.toString(),
         completed_date: book.completed_date || '',
         status: book.status || 'completed',
-        image_url: book.image_url || ''
+        image_url: book.image_url || '',
+        rating: book.rating != null ? String(book.rating) : ''
       });
     }
   }, [book]);
@@ -87,7 +89,8 @@ function BookEditModal({ book, onClose, onSave }) {
 
       await axios.put(`/api/books/${book.id}`, {
         ...formData,
-        pages: parseInt(formData.pages)
+        pages: parseInt(formData.pages),
+        rating: formData.rating === '' ? null : parseInt(formData.rating, 10)
       });
 
       onSave();
@@ -205,7 +208,25 @@ function BookEditModal({ book, onClose, onSave }) {
             </div>
           </div>
 
-          {/* Hidden field for image_url to persist it */}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="edit-rating">평점 (선택)</label>
+              <select
+                id="edit-rating"
+                name="rating"
+                value={formData.rating}
+                onChange={handleChange}
+              >
+                <option value="">미선택</option>
+                <option value="1">★ 1</option>
+                <option value="2">★★ 2</option>
+                <option value="3">★★★ 3</option>
+                <option value="4">★★★★ 4</option>
+                <option value="5">★★★★★ 5</option>
+              </select>
+            </div>
+          </div>
+
           <input type="hidden" name="image_url" value={formData.image_url} />
 
           {error && <div className="message error">{error}</div>}
