@@ -12,6 +12,7 @@ const VALIDATION_LIMITS = {
   TITLE_MAX_LENGTH: 200,
   AUTHOR_MAX_LENGTH: 100,
   GENRE_MAX_LENGTH: 50,
+  MEMO_MAX_LENGTH: 500,
   PAGES_MIN: 1,
   PAGES_MAX: 100000,
   RATING_MIN: 1,
@@ -40,7 +41,8 @@ db.serialize(() => {
     completed_date TEXT,
     status TEXT DEFAULT 'completed',
     image_url TEXT,
-    rating INTEGER
+    rating INTEGER,
+    memo TEXT
   )`);
 
   // 2. 기존 테이블에 컬럼이 없는 경우 추가 (마이그레이션)
@@ -73,6 +75,14 @@ db.serialize(() => {
       db.run("ALTER TABLE books ADD COLUMN rating INTEGER", (err) => {
         if (err) console.error('rating 컬럼 추가 실패:', err);
         else console.log('rating 컬럼 추가 완료');
+      });
+    }
+
+    if (!columns.includes('memo')) {
+      console.log('memo 컬럼 추가 중...');
+      db.run("ALTER TABLE books ADD COLUMN memo TEXT", (err) => {
+        if (err) console.error('memo 컬럼 추가 실패:', err);
+        else console.log('memo 컬럼 추가 완료');
       });
     }
   });
@@ -278,6 +288,11 @@ function validateBookData(body) {
   if (!ratingResult.valid) errors.push(ratingResult.error);
   else validated.rating = ratingResult.value;
 
+  // 메모 (선택, 500자 이하)
+  const memoResult = validateString(body.memo, '메모', VALIDATION_LIMITS.MEMO_MAX_LENGTH, false);
+  if (!memoResult.valid) errors.push(memoResult.error);
+  else validated.memo = memoResult.value || '';
+
   return {
     valid: errors.length === 0,
     errors: errors,
@@ -347,18 +362,18 @@ app.post('/api/books', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date, status, image_url, rating } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url, rating, memo } = validation.data;
 
   db.run(
-    'INSERT INTO books (title, author, genre, pages, completed_date, status, image_url, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null],
+    'INSERT INTO books (title, author, genre, pages, completed_date, status, image_url, rating, memo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null, memo || ''],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
         res.status(500).json({ error: '책을 추가하는 중 오류가 발생했습니다.' });
         return;
       }
-      res.json({ id: this.lastID, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null });
+      res.json({ id: this.lastID, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null, memo: memo || '' });
     }
   );
 });
@@ -377,12 +392,12 @@ app.put('/api/books/:id', (req, res) => {
     return;
   }
   
-  const { title, author, genre, pages, completed_date, status, image_url, rating } = validation.data;
+  const { title, author, genre, pages, completed_date, status, image_url, rating, memo } = validation.data;
   const id = idValidation.value;
 
   db.run(
-    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ?, status = ?, image_url = ?, rating = ? WHERE id = ?',
-    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null, id],
+    'UPDATE books SET title = ?, author = ?, genre = ?, pages = ?, completed_date = ?, status = ?, image_url = ?, rating = ?, memo = ? WHERE id = ?',
+    [title, author, genre, pages, completed_date || null, status, image_url, rating ?? null, memo || '', id],
     function(err) {
       if (err) {
         console.error('데이터베이스 오류:', err);
@@ -393,7 +408,7 @@ app.put('/api/books/:id', (req, res) => {
         res.status(404).json({ error: '책을 찾을 수 없습니다.' });
         return;
       }
-      res.json({ id: id, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null });
+      res.json({ id: id, title, author, genre, pages, completed_date, status, image_url, rating: rating ?? null, memo: memo || '' });
     }
   );
 });

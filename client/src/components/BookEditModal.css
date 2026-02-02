@@ -13,7 +13,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   width: 100%;
   max-width: 600px;
@@ -32,7 +32,7 @@
 
 .modal-header h2 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
@@ -76,7 +76,7 @@
 
 .form-group label {
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -91,6 +91,29 @@
 .form-group input:focus {
   outline: none;
   border-color: #3498db;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.form-group textarea {
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #888;
 }
 
 .message {

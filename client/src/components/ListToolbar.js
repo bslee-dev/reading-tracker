@@ -9,7 +9,7 @@ const SORT_OPTIONS = [
   { value: 'pages_asc', label: '페이지 적은 순' },
 ];
 
-function ListToolbar({ sortOrder, onSortChange, genreFilter, onGenreChange, genres }) {
+function ListToolbar({ sortOrder, onSortChange, genreFilter, onGenreChange, genres, books, onExportCsv }) {
   return (
     <div className="list-toolbar">
       <div className="toolbar-group">
@@ -43,6 +43,14 @@ function ListToolbar({ sortOrder, onSortChange, genreFilter, onGenreChange, genr
           ))}
         </select>
       </div>
+      {onExportCsv && (
+        <div className="toolbar-group toolbar-export">
+          <label>&nbsp;</label>
+          <button type="button" className="toolbar-export-btn" onClick={() => onExportCsv(books)}>
+            📥 CSV 내보내기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

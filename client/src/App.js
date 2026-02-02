@@ -7,7 +7,10 @@ import StatsCards from './components/StatsCards';
 import SearchBar from './components/SearchBar';
 import ReadingGoal from './components/ReadingGoal';
 import ListToolbar from './components/ListToolbar';
+import { downloadCsv } from './utils/exportCsv';
 import './App.css';
+
+const THEME_KEY = 'reading-tracker-theme';
 
 function App() {
   const [books, setBooks] = useState([]);
@@ -17,6 +20,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('date');
   const [genreFilter, setGenreFilter] = useState('');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem(THEME_KEY) === 'dark');
 
   const fetchBooks = async (opts = {}) => {
     try {
@@ -75,10 +79,28 @@ function App() {
     fetchMonthlyData();
   };
 
+  const handleExportCsv = (list) => {
+    downloadCsv(list || books, `reading-list-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  useEffect(() => {
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>📚 독서 기록 대시보드</h1>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={() => setIsDark((v) => !v)}
+          title={isDark ? '라이트 모드' : '다크 모드'}
+          aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+        >
+          {isDark ? '☀️' : '🌙'}
+        </button>
       </header>
       <main className="App-main">
         <div className="container">
@@ -114,6 +136,8 @@ function App() {
                   genreFilter={genreFilter}
                   onGenreChange={(v) => { setGenreFilter(v); fetchBooks({ genre: v }); }}
                   genres={genres}
+                  books={books}
+                  onExportCsv={handleExportCsv}
                 />
                 <SearchBar 
                   searchTerm={searchTerm}

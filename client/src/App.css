@@ -3,16 +3,40 @@
 }
 
 .App-header {
-  background-color: #2c3e50;
+  background-color: var(--header-bg);
   color: white;
   padding: 2rem;
   text-align: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .App-header h1 {
   font-size: 2rem;
   font-weight: 600;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 50%;
+  right: 1.5rem;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .App-main {
@@ -25,7 +49,7 @@
 }
 
 section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -35,8 +59,8 @@ section {
 section h2 {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #2c3e50;
-  border-bottom: 2px solid #3498db;
+  color: var(--section-title);
+  border-bottom: 2px solid var(--section-title-border);
   padding-bottom: 0.5rem;
 }
 

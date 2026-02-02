@@ -108,6 +108,11 @@ function BookList({ books, searchTerm, onBookDeleted, onBookUpdated }) {
                   </span>
                 )}
               </div>
+              {book.memo && (
+                <p className="book-memo" title={book.memo}>
+                  {book.memo.length > 60 ? `${book.memo.slice(0, 60)}…` : book.memo}
+                </p>
+              )}
             </div>
             <div className="book-actions">
               <button

@@ -11,7 +11,8 @@ function BookEditModal({ book, onClose, onSave }) {
     completed_date: '',
     status: 'completed',
     image_url: '',
-    rating: ''
+    rating: '',
+    memo: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,8 @@ function BookEditModal({ book, onClose, onSave }) {
         completed_date: book.completed_date || '',
         status: book.status || 'completed',
         image_url: book.image_url || '',
-        rating: book.rating != null ? String(book.rating) : ''
+        rating: book.rating != null ? String(book.rating) : '',
+        memo: book.memo || ''
       });
     }
   }, [book]);
@@ -59,12 +61,11 @@ function BookEditModal({ book, onClose, onSave }) {
         return;
       }
     } else if (name === 'genre') {
-      // 장르 길이 제한 (50자)
-      if (value.length <= 50) {
-        processedValue = value;
-      } else {
-        return;
-      }
+      if (value.length <= 50) processedValue = value;
+      else return;
+    } else if (name === 'memo') {
+      if (value.length <= 500) processedValue = value;
+      else return;
     }
 
     setFormData(prev => ({
@@ -90,7 +91,8 @@ function BookEditModal({ book, onClose, onSave }) {
       await axios.put(`/api/books/${book.id}`, {
         ...formData,
         pages: parseInt(formData.pages),
-        rating: formData.rating === '' ? null : parseInt(formData.rating, 10)
+        rating: formData.rating === '' ? null : parseInt(formData.rating, 10),
+        memo: formData.memo.trim() || ''
       });
 
       onSave();
@@ -224,6 +226,22 @@ function BookEditModal({ book, onClose, onSave }) {
                 <option value="4">★★★★ 4</option>
                 <option value="5">★★★★★ 5</option>
               </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group form-group-full">
+              <label htmlFor="edit-memo">한줄평 / 메모 (500자)</label>
+              <textarea
+                id="edit-memo"
+                name="memo"
+                value={formData.memo}
+                onChange={handleChange}
+                maxLength={500}
+                rows={2}
+                placeholder="읽고 난 소감"
+              />
+              <span className="char-count">{formData.memo.length}/500</span>
             </div>
           </div>
 

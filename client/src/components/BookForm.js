@@ -10,9 +10,10 @@ function BookForm({ onBookAdded }) {
     genre: '',
     pages: '',
     completed_date: '',
-    status: 'reading', // Default status
+    status: 'reading',
     image_url: '',
-    rating: ''
+    rating: '',
+    memo: ''
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [error, setError] = useState('');
@@ -46,12 +47,11 @@ function BookForm({ onBookAdded }) {
         return;
       }
     } else if (name === 'genre') {
-      // 장르 길이 제한 (50자)
-      if (value.length <= 50) {
-        processedValue = value;
-      } else {
-        return;
-      }
+      if (value.length <= 50) processedValue = value;
+      else return;
+    } else if (name === 'memo') {
+      if (value.length <= 500) processedValue = value;
+      else return;
     }
 
     setFormData({
@@ -70,7 +70,8 @@ function BookForm({ onBookAdded }) {
       genre: book.genre || formData.genre,
       pages: book.pages || formData.pages,
       image_url: book.image_url || '',
-      rating: book.rating ?? formData.rating
+      rating: book.rating ?? formData.rating,
+      memo: book.memo ?? formData.memo
     });
   };
 
@@ -89,7 +90,8 @@ function BookForm({ onBookAdded }) {
       await axios.post('/api/books', {
         ...formData,
         pages: parseInt(formData.pages),
-        rating: formData.rating === '' ? null : parseInt(formData.rating, 10)
+        rating: formData.rating === '' ? null : parseInt(formData.rating, 10),
+        memo: formData.memo.trim() || ''
       });
 
       setSuccess('책이 성공적으로 추가되었습니다!');
@@ -101,7 +103,8 @@ function BookForm({ onBookAdded }) {
         completed_date: '',
         status: 'reading',
         image_url: '',
-        rating: ''
+        rating: '',
+        memo: ''
       });
 
       onBookAdded();
@@ -232,6 +235,22 @@ function BookForm({ onBookAdded }) {
               <option value="4">★★★★ 4</option>
               <option value="5">★★★★★ 5</option>
             </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group form-group-full">
+            <label htmlFor="memo">한줄평 / 메모 (선택, 500자)</label>
+            <textarea
+              id="memo"
+              name="memo"
+              value={formData.memo}
+              onChange={handleChange}
+              maxLength={500}
+              rows={2}
+              placeholder="읽고 난 소감을 적어보세요"
+            />
+            <span className="char-count">{formData.memo.length}/500</span>
           </div>
         </div>
 
